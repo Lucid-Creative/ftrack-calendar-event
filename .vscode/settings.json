@@ -1,0 +1,8 @@
+{
+    "python.pythonPath": "C:/Users/kylebjordahl/.virtualenvs/ftrack-calendar-event/scripts/python.exe",
+    "python.unitTest.pyTestEnabled": true,
+    "python.unitTest.pyTestArgs": [
+        "test"
+    ],
+    "python.envFile": "${workspaceRoot}/.env"
+}
