@@ -157,6 +157,16 @@ class CalendarUpdater(object):
         
     def entity_to_event(self, entity, color):
         self.logger.info("Creating entity for %s %s", entity['name'], entity.entity_type)
+
+        # avoid any entities that don't have a project 
+        # (appears to only be leave type CalendarEvents)
+        if entity['project'] is not None:
+            summary = "{} | {}".format(
+                entity['name'],
+                entity['project']['full_name']
+                )  
+
+        # set up some things if its a task        
         if entity.entity_type == "Task":
             if entity['start_date'] is None:
                 # milestones don't have a start date, so for google calendar
@@ -177,6 +187,10 @@ class CalendarUpdater(object):
                 'timeZone': 'UTC',
             }
 
+            people = [u['resource'] for u in entity['assignments']]
+
+
+        # slightly different mappings for CalendarEvents 
         elif entity.entity_type == "CalendarEvent":
             self.logger.debug("Using CalendarEvent mode")
             start = { 'date': entity['start'].format("YYYY-MM-DD") }
@@ -185,19 +199,17 @@ class CalendarUpdater(object):
             if entity['leave']:
                 # google color id 8 is grey, which we'll use for leave
                 color = "8" 
-
-        if entity['project'] is not None:
-            summary = "{} | {}".format(
-                entity['name'],
-                entity['project']['full_name']
+                summary = "LEAVE: {} | {}".format(
+                    ", ".join([u['resource']['first_name'] 
+                        for u in entity['calendar_event_resources']]),
+                    entity['name']
                 )
+            
+            people = [u['resource'] for u in entity['calendar_event_resources']]
 
-        elif 'leave' in entity.keys() and entity['leave']:
-            summary = "LEAVE: {} | {}".format(
-                ", ".join([u['resource']['first_name'] 
-                    for u in entity['calendar_event_resources']]),
-                entity['name']
-            )
+        # make an attendee list
+        if len(people) > 0:
+            attendees = [{'email': u['email']} for u in people]
 
         event = {
             'summary': summary,
@@ -208,7 +220,7 @@ class CalendarUpdater(object):
             'reminders': {
                 'useDefault': False,
             },
-            
+            'attendees': attendees,
             'extendedProperties': {
                 'private': {
                     'ftrack_id': entity['id'],
