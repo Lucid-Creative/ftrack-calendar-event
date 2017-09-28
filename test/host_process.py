@@ -1,8 +1,11 @@
 import ftrack_api
 import os, sys
-import setup
 import logging
 
+# import setup for non-heroku
+if not os.path.isdir("/app/.heroku")
+    import setup
+    
 dir_path = os.path.dirname(os.path.realpath(__file__))
 plugin_path = os.path.realpath(os.path.join(dir_path,'..','plugin_root'))
 
