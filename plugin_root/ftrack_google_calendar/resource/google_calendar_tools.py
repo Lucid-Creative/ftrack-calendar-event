@@ -87,27 +87,71 @@ class CalendarUpdater(object):
         '''
         Takes the context it's passed and does all the calendarable children
         '''
+        self.logger.info("Received Make Calendar Event action call!")
         self.session = ftrack_api.Session()
-        candidates = self.session.query("CalendarEvent, Milestone")
 
-        # TODO: Finish implementing hierarchy
+        id_match = " or ".join([
+            "id='{}'".format(entity['entityId']) 
+            for entity in event['data']['selection']])
+
+        # q = self.session.query(
+        #     "TypedContext where link any ({})".format(id_match))
+
+        # for entity in q:
+        #     self.put_on_calendar(entity)
+        
+        # if the project is selected, it will match for the calendar event
+        q_calendar_event = self.session.query(
+            "CalendarEvent where project.id any ({})".format(id_match))
+        q_milestone = self.session.query(
+            "Milestone where ancestors any ({})".format(id_match))
+        q_task = self.session.query(
+            "Task where ancestors any ({})".format(id_match))
+
+        self.logger.debug("Q= Task where link any (%s)",id_match)
+        
+        try:
+            for entity in q_calendar_event:
+                self.put_on_calendar(entity)
+        except Exception as e:
+            self.logger.error("Error updating CalendarEvents", exc_info=True)
+        
+        try:
+            for entity in q_milestone:
+                self.put_on_calendar(entity)
+        except Exception as e:
+            self.logger.error("Error updating Milestones", exc_info=True)
+        
+        try:
+            for entity in q_task:
+                self.put_on_calendar(entity)
+        except Exception as e:
+            self.logger.error("Error updating Tasks", exc_info=True)
+   
+            
         
     def put_on_calendar(self, entity):
         self.session = ftrack_api.Session()
         calendar_color = self.get_calendar_event_color(entity['project'])
         self.update_team_calendar(entity, color=calendar_color)
 
-
-        #self.update_individual_calendar(entity, color=calendar_color)
-
         self.session.commit()
+
     def update_team_calendar(self, entity, color=None):
         '''
         This does the dirty work of adding or updating a calendar item in google based on the ftrack entity
 
         The ftrack entity will get "team_calendar_id" metadata to identify it for future updates
         '''
-        event = self.entity_to_event(entity, color)
+        try:
+            event = self.entity_to_event(entity, color)
+        except TypeError as e:
+            self.logger.error("Could not generate event from this entity: %s (%s|%s)",
+                entity['name'],
+                entity.entity_type,
+                entity['id'],
+                exc_info=True)
+
         calendar = self.ensure_calendar("ftrack")
 
         # determine from google if we have the event already
@@ -151,9 +195,6 @@ class CalendarUpdater(object):
                 sendNotifications = False
             ).execute()
         
-    def update_individual_calendar():
-        # TODO: write individual calendar method
-        pass
         
     def entity_to_event(self, entity, color):
         self.logger.info("Creating entity for %s %s", entity['name'], entity.entity_type)
@@ -168,16 +209,28 @@ class CalendarUpdater(object):
 
         # set up some things if its a task        
         if entity.entity_type == "Task":
+            #if it also doesn't have an end date, then bail on this
+            if entity['start_date'] is None and entity['end_date'] is None:
+                raise TypeError("Must have a start or end date!")
+
             if entity['start_date'] is None:
                 # milestones don't have a start date, so for google calendar
                 # we make them start on the end date and set up the 
                 start_dt = str(entity['end_date'])
                 end_arrow = entity['end_date'].shift(minutes=+30)
                 end_dt = str(end_arrow)
+
+            elif entity['end_date'] is None:
+                # not sure why theres no end?
+                start_dt = str(entity['start_date'])
+                end_arrow = entity['start_date'].shift(minutes=+30)
+                end_dt = str(end_arrow)
+
             else:
                 start_dt = str(entity['start_date'])
                 end_dt = str(entity['end_date'])
-
+            
+            # create the dates for the event format
             start = {
                 'dateTime': start_dt,
                 'timeZone': 'UTC',
@@ -196,7 +249,7 @@ class CalendarUpdater(object):
             start = { 'date': entity['start'].format("YYYY-MM-DD") }
             end = { 'date': entity['end'].format("YYYY-MM-DD")}
             
-            if entity['leave']:
+            if entity['leave'] is True:
                 # google color id 8 is grey, which we'll use for leave
                 color = "8" 
                 summary = "LEAVE: {} | {}".format(
@@ -210,6 +263,8 @@ class CalendarUpdater(object):
         # make an attendee list
         if len(people) > 0:
             attendees = [{'email': u['email']} for u in people]
+        else:
+            attendees = []
 
         event = {
             'summary': summary,

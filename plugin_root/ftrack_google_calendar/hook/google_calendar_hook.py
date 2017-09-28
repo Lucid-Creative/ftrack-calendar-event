@@ -52,6 +52,12 @@ def discover(event):
 
     return actions
 
+def action_test(event):
+
+    logger = setup_logging()
+    logger.info("got event action! TEST ONLY")
+    return True
+
 def register(session, **kw):
     '''
     This method is called by the ftrack api so it knows which functions to run when asked for a location
@@ -74,15 +80,20 @@ def register(session, **kw):
         'topic=ftrack.update',# and data.entities any (entityType="CalendarEvent" or entityType="MilestoneEvent")',
         cal.handle_ftrack_event
     )
+    logger.info('Subscribed update event')
+
     session.event_hub.subscribe(
         'topic=ftrack.action.discover',
         discover
-    )
+    )    
+    logger.info('Subscribed action discover event')
+
     session.event_hub.subscribe(
-        'topic=ftrack.action.discover and data.actionIdentifier={}'.format(
+        'topic=ftrack.action.launch and data.actionIdentifier={}'.format(
             ACTION_IDENTIFIER
         ),
         cal.handle_whole_project
     )
+    logger.info('Subscribed %s event', ACTION_IDENTIFIER)
 
     logger.info("Successfully registered")
