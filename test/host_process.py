@@ -3,7 +3,7 @@ import os, sys
 import logging
 
 # import setup for non-heroku
-if not os.path.isdir("/app/.heroku")
+if not os.path.isdir("/app/.heroku"):
     import setup
     
 dir_path = os.path.dirname(os.path.realpath(__file__))
