@@ -416,14 +416,18 @@ class CalendarUpdater(object):
             'ftrack-google-calendar.log'
         )
 
-        file_handler = logging.handlers.TimedRotatingFileHandler(log_file,
-                                        when="w0",
-                                        interval=1,
-                                        backupCount=5)
+            # protect file logging for heroku
+        if not os.path.isdir("/app/.heroku"):
+            file_handler = logging.handlers.TimedRotatingFileHandler(LOG_DIR,
+                                            when="w0",
+                                            interval=1,
+                                            backupCount=5)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        else:
+            logging.basicConfig(level=self.LOG_LEVEL)
+            
         logger.setLevel(self.LOG_LEVEL)
         return logger
 

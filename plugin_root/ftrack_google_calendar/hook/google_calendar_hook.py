@@ -28,14 +28,20 @@ ACTION_IDENTIFIER = 'make-project-events'
 
 def setup_logging():
     logger = logging.getLogger("Lucid.GoogleCalendarHook")
-    file_handler = logging.handlers.TimedRotatingFileHandler(LOG_DIR,
-                                       when="w0",
-                                       interval=1,
-                                       backupCount=5)
-
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+
+    # protect file logging for heroku
+    if not os.path.isdir("/app/.heroku"):
+        file_handler = logging.handlers.TimedRotatingFileHandler(LOG_DIR,
+                                        when="w0",
+                                        interval=1,
+                                        backupCount=5)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    else:
+        logging.basicConfig(level=logging.DEBUG)
+
     return logger
 
 def discover(event):
