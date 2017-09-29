@@ -1,1 +1,1 @@
-web: python test/host_process.py
+ftrack-calendar: python test/host_process.py
