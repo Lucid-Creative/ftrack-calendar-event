@@ -1,1 +1,1 @@
-ftrack-calendar: python test/host_process.py
+worker: python test/host_process.py
