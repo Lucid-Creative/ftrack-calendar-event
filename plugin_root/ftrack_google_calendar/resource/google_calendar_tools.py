@@ -102,7 +102,7 @@ class CalendarUpdater(object):
         
         # if the project is selected, it will match for the calendar event
         q_calendar_event = self.session.query(
-            "CalendarEvent where project.id any ({})".format(id_match))
+            "CalendarEvent where project has ({})".format(id_match))
         q_milestone = self.session.query(
             "Milestone where ancestors any ({})".format(id_match))
         q_task = self.session.query(
