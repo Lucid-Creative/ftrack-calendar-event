@@ -81,6 +81,7 @@ class CalendarUpdater(object):
                 )
     
                 # now that we're sure that we have an event we want, do the thing
+                self.logger.debug("Putting %s %s on Calendar", entity.entity_type, entity['name'])
                 self.put_on_calendar(entity)
 
     def handle_whole_project(self, event):
@@ -112,18 +113,21 @@ class CalendarUpdater(object):
         
         try:
             for entity in q_calendar_event:
+                self.logger.debug("Putting CalEvent %s on Calendar:", entity['name'])
                 self.put_on_calendar(entity)
         except Exception as e:
             self.logger.error("Error updating CalendarEvents", exc_info=True)
         
         try:
             for entity in q_milestone:
+                self.logger.debug("Putting Milestone %s on Calendar:", entity['name'])
                 self.put_on_calendar(entity)
         except Exception as e:
             self.logger.error("Error updating Milestones", exc_info=True)
         
         try:
             for entity in q_task:
+                self.logger.debug("Putting Task %s on Calendar:", entity['name'])
                 self.put_on_calendar(entity)
         except Exception as e:
             self.logger.error("Error updating Tasks", exc_info=True)
