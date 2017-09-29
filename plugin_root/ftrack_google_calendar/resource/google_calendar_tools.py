@@ -199,6 +199,9 @@ class CalendarUpdater(object):
     def entity_to_event(self, entity, color):
         self.logger.info("Creating entity for %s %s", entity['name'], entity.entity_type)
 
+        # initialize the number of people invited
+        invited_users = []
+
         # avoid any entities that don't have a project 
         # (appears to only be leave type CalendarEvents)
         if entity['project'] is not None:
@@ -240,7 +243,7 @@ class CalendarUpdater(object):
                 'timeZone': 'UTC',
             }
 
-            people = [u['resource'] for u in entity['assignments']]
+            invited_users = [u['resource'] for u in entity['assignments']]
 
 
         # slightly different mappings for CalendarEvents 
@@ -258,11 +261,11 @@ class CalendarUpdater(object):
                     entity['name']
                 )
             
-            people = [u['resource'] for u in entity['calendar_event_resources']]
+            invited_users = [u['resource'] for u in entity['calendar_event_resources']]
 
         # make an attendee list
-        if len(people) > 0:
-            attendees = [{'email': u['email']} for u in people]
+        if len(invited_users) > 0:
+            attendees = [{'email': u['email']} for u in invited_users]
         else:
             attendees = []
 
